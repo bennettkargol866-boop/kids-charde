@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff8eb">
+  <title>Little Charades — Big fun for everyone!</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23ffd35b'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' font-size='42'%3E🎭%3C/text%3E%3C/svg%3E">
+  <link rel="manifest" href="./manifest.json">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #24304a;
+      --muted: #68738a;
+      --paper: #fff8eb;
+      --white: #fff;
+      --purple: #7655e8;
+      --purple-dark: #573bc5;
+      --green: #25a879;
+      --red: #f17268;
+      --yellow: #ffd35b;
+      --shadow: 0 18px 50px rgb(62 47 111 / 12%);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 8% 16%, rgb(255 221 113 / 28%), transparent 27rem),
+        radial-gradient(ellipse at 92% 82%, rgb(175 231 210 / 38%), transparent 30rem),
+        var(--paper);
+      font-family: "Trebuchet MS", "Arial Rounded MT Bold", Arial, sans-serif;
+    }
+
+    button, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, select:focus-visible {
+      outline: 4px solid #ffad4d;
+      outline-offset: 4px;
+    }
+
+    .app {
+      width: min(100% - 32px, 620px);
+      min-height: 100vh;
+      min-height: 100svh;
+      margin-inline: auto;
+      padding: 22px 0 30px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 42px;
+      margin-bottom: 16px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: -.04em;
+    }
+
+    .brand-icon {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 13px;
+      background: var(--yellow);
+      font-size: 1.4rem;
+      transform: rotate(-7deg);
+    }
+
+    .screen { display: none; flex: 1; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    .welcome {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 12px 0 30px;
+    }
+
+    .hero-art {
+      position: relative;
+      display: grid;
+      width: 190px;
+      height: 170px;
+      margin: 4px auto 12px;
+      place-items: center;
+      border: 5px solid var(--white);
+      border-radius: 44% 56% 52% 48% / 45% 44% 56% 55%;
+      background: #e6ddff;
+      box-shadow: var(--shadow);
+      font-size: 6.4rem;
+      transform: rotate(-3deg);
+    }
+
+    .hero-art::before, .hero-art::after {
+      position: absolute;
+      z-index: -1;
+      color: #f2a944;
+      font-size: 2rem;
+      content: "✦";
+    }
+    .hero-art::before { top: -14px; right: -25px; }
+    .hero-art::after { bottom: 10px; left: -30px; color: #45b88b; font-size: 1.5rem; }
+
+    h1 {
+      max-width: 500px;
+      margin: 10px auto 9px;
+      font-size: clamp(2.5rem, 10vw, 4rem);
+      line-height: .98;
+      letter-spacing: -.07em;
+    }
+    h1 span { color: var(--purple); }
+    .intro {
+      max-width: 380px;
+      margin: 9px 0 24px;
+      color: var(--muted);
+      font-size: 1.06rem;
+      line-height: 1.5;
+    }
+
+    .setup-card, .game-card, .results-card {
+      width: 100%;
+      border: 1px solid rgb(109 93 166 / 10%);
+      border-radius: 26px;
+      background: var(--white);
+      box-shadow: var(--shadow);
+    }
+
+    .setup-card {
+      padding: 18px;
+      text-align: left;
+    }
+
+    .setup-screen {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .setup-screen h1 {
+      margin-bottom: 10px;
+      font-size: clamp(2rem, 8vw, 3rem);
+    }
+
+    .setup-screen .intro { margin: 0 0 22px; }
+
+    .back-button {
+      min-height: 44px;
+      margin-top: 16px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 800;
+    }
+    .back-button:hover { background: #f0ebff; color: var(--purple-dark); }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      margin: 0 0 7px 2px;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .sound-toggle {
+      display: flex;
+      min-height: 48px;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      border: 2px solid #eeeaf8;
+      border-radius: 13px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: .96rem;
+      font-weight: 700;
+    }
+    .sound-toggle input {
+      width: 20px;
+      height: 20px;
+      margin: 0;
+      accent-color: var(--purple);
+      cursor: pointer;
+    }
+
+    select {
+      width: 100%;
+      min-height: 48px;
+      padding: 0 34px 0 12px;
+      border: 2px solid #eeeaf8;
+      border-radius: 13px;
+      background: #fff;
+      color: var(--ink);
+      font-size: .96rem;
+      font-weight: 700;
+    }
+
+    .primary, .action, .icon-button, .again {
+      min-height: 56px;
+      border: 0;
+      border-radius: 17px;
+      cursor: pointer;
+      font-weight: 900;
+      transition: transform .15s ease, filter .15s ease;
+    }
+
+    .primary:hover, .action:hover, .icon-button:hover, .again:hover { filter: brightness(1.04); transform: translateY(-2px); }
+    .primary:active, .action:active, .icon-button:active, .again:active { transform: translateY(1px); }
+
+    .primary {
+      width: 100%;
+      color: #fff;
+      background: var(--purple);
+      box-shadow: 0 7px 0 var(--purple-dark);
+      font-size: 1.17rem;
+    }
+    .primary:active { box-shadow: 0 3px 0 var(--purple-dark); }
+
+    .tiny-note {
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: .84rem;
+    }
+
+    .game {
+      justify-content: center;
+      padding-bottom: 4px;
+    }
+
+    .game-top {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .stat {
+      display: grid;
+      gap: 2px;
+      color: var(--muted);
+      font-size: .74rem;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .stat strong { color: var(--ink); font-size: 1.25rem; letter-spacing: 0; }
+    .stat:last-child { text-align: right; }
+
+    .timer-pill {
+      min-width: 82px;
+      padding: 9px 14px;
+      border-radius: 99px;
+      background: #fff;
+      box-shadow: 0 4px 15px rgb(62 47 111 / 9%);
+      font-size: 1.22rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 900;
+      text-align: center;
+    }
+    .timer-pill.urgent { color: #d74f43; background: #fff0ec; }
+
+    .game-card {
+      display: flex;
+      min-height: 350px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      overflow: hidden;
+      text-align: center;
+    }
+    .category {
+      padding: 7px 12px;
+      border-radius: 99px;
+      background: #f0ebff;
+      color: var(--purple-dark);
+      font-size: .76rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .word-art {
+      display: grid;
+      width: 190px;
+      height: 170px;
+      margin: 16px 0 2px;
+      place-items: center;
+      border-radius: 40px;
+      background: #fff6d9;
+      font-size: 7rem;
+      line-height: 1;
+      animation: pop-in .3s ease both;
+    }
+    .prompt-word {
+      margin: 12px 0 0;
+      font-size: clamp(2.5rem, 11vw, 4.5rem);
+      font-weight: 1000;
+      letter-spacing: -.065em;
+      line-height: 1;
+      overflow-wrap: anywhere;
+      animation: pop-in .3s ease both;
+    }
+    .hint { margin: 12px 0 0; color: var(--muted); font-size: .95rem; }
+
+    .game-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .action { min-height: 64px; color: white; font-size: 1.12rem; }
+    .action.skip { background: var(--red); box-shadow: 0 5px 0 #d6544c; }
+    .action.correct { background: var(--green); box-shadow: 0 5px 0 #18855e; }
+    .action:active { box-shadow: none; }
+
+    .game-bottom {
+      display: flex;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    .icon-button {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      gap: 7px;
+      padding: 0 13px;
+      border: 1px solid #e9e5f2;
+      background: #fff;
+      color: var(--muted);
+      font-size: .86rem;
+    }
+
+    .results {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .results-card { padding: 34px 24px; }
+    .results-art { font-size: 5rem; }
+    .results h2 { margin: 12px 0 6px; font-size: 2.5rem; letter-spacing: -.06em; }
+    .results p { color: var(--muted); line-height: 1.5; }
+    .score-label { margin: 16px 0 0; font-weight: 800; }
+    .score-big { margin: 0 0 4px; color: var(--purple); font-size: 4.5rem; font-weight: 1000; letter-spacing: -.08em; }
+    .round-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .round-stat {
+      padding: 13px 8px;
+      border-radius: 15px;
+      background: #f7f4ff;
+      color: var(--muted);
+      font-size: .8rem;
+      font-weight: 800;
+    }
+    .round-stat strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--ink);
+      font-size: 1.5rem;
+    }
+    .again { width: 100%; margin-top: 16px; color: white; background: var(--purple); font-size: 1.1rem; }
+    .results-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .results-actions .again { margin-top: 0; }
+    .again.secondary {
+      border: 2px solid #e9e5f2;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes pop-in {
+      from { opacity: 0; transform: scale(.9) translateY(6px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @media (max-width: 400px) {
+      .app { width: min(100% - 24px, 620px); padding-top: 14px; }
+      .hero-art { width: 155px; height: 140px; font-size: 5.2rem; }
+      .game-card { min-height: 0; padding: 18px 14px; }
+      .word-art { width: 160px; height: 145px; font-size: 6rem; }
+      .setup-card { padding: 14px; }
+    }
+
+    @media (max-height: 700px) {
+      .app { padding-top: 10px; padding-bottom: 10px; }
+      .topbar { min-height: 38px; margin-bottom: 8px; }
+      .brand-icon { width: 34px; height: 34px; }
+      .game { min-height: 0; padding-bottom: 0; }
+      .game-top { margin-bottom: 8px; }
+      .timer-pill { padding: 6px 12px; }
+      .game-card { min-height: 0; flex: 1; padding: 10px 14px; }
+      .word-art {
+        width: clamp(105px, 30vw, 145px);
+        height: clamp(90px, 22vh, 125px);
+        margin-top: 10px;
+        border-radius: 30px;
+        font-size: clamp(4rem, 16vw, 6rem);
+      }
+      .prompt-word { margin-top: 8px; font-size: clamp(2rem, 9vw, 3rem); }
+      .hint { margin-top: 7px; font-size: .86rem; }
+      .game-controls { gap: 10px; margin-top: 10px; }
+      .action { min-height: 56px; }
+      .game-bottom { margin-top: 8px; }
+      .icon-button { min-height: 44px; }
+    }
+
+    @media (max-height: 520px) {
+      .app { padding-top: 6px; padding-bottom: 6px; }
+      .topbar { min-height: 34px; margin-bottom: 6px; }
+      .brand-icon { width: 30px; height: 30px; }
+      .word-art { height: clamp(76px, 18vh, 100px); }
+      .prompt-word { font-size: clamp(1.65rem, 8vw, 2.3rem); }
+      .hint { margin-top: 5px; font-size: .8rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon" aria-hidden="true">🎭</span> Little Charades</div>
+    </header>
+
+    <section class="screen welcome active" id="welcome-screen" aria-labelledby="welcome-title">
+      <div class="hero-art" aria-hidden="true">🦁</div>
+      <h1 id="welcome-title">Ready, set,<br><span>act it out!</span></h1>
+      <p class="intro">Act out a silly word without speaking while your team guesses. Tap Correct when they get it, or Skip to try another card.</p>
+      <button class="primary" id="setup-button" type="button">Play Game <span aria-hidden="true">→</span></button>
+      <p class="tiny-note">Your team guesses out loud. Little Charades never listens or decides if an answer is right — you do!</p>
+    </section>
+
+    <section class="screen setup-screen" id="setup-screen" aria-labelledby="setup-title">
+      <h1 id="setup-title">Make it your game!</h1>
+      <p class="intro">The acting player holds the phone. Ask everyone else to look away before you start the round.</p>
+      <div class="setup-card">
+        <div class="setup-grid">
+          <div class="field">
+            <label for="category-select">Choose a pack</label>
+            <select id="category-select">
+              <option value="animals">Animals</option>
+              <option value="actions">Actions</option>
+              <option value="objects">Objects</option>
+              <option value="food">Food</option>
+              <option value="mixed" selected>Mixed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="difficulty-select">Difficulty</label>
+            <select id="difficulty-select">
+              <option value="easy" selected>Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="duration-select">Play for</label>
+            <select id="duration-select">
+              <option value="30">30 seconds</option>
+              <option value="60" selected>60 seconds</option>
+              <option value="90">90 seconds</option>
+              <option value="120">120 seconds</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sound-enabled">Sound</label>
+            <label class="sound-toggle" for="sound-enabled">
+              <input id="sound-enabled" type="checkbox" checked>
+              Enable sounds
+            </label>
+          </div>
+        </div>
+        <button class="primary" id="start-button" type="button">Start Game <span aria-hidden="true">→</span></button>
+      </div>
+      <p class="sr-only" id="settings-status" role="status" aria-live="polite"></p>
+      <button class="back-button" id="setup-back-button" type="button">← Back to welcome</button>
+    </section>
+
+    <section class="screen game" id="game-screen" aria-label="Charades game">
+      <div class="game-top">
+        <div class="stat">Current score <strong id="score">0</strong></div>
+        <div class="timer-pill" id="timer" role="timer" aria-label="Time remaining">1:00</div>
+        <div class="stat">Cards left <strong id="cards-left">0</strong></div>
+      </div>
+      <article class="game-card" aria-live="polite" aria-atomic="true">
+        <span class="category" id="word-category">Animals</span>
+        <div class="word-art" id="word-art" aria-hidden="true">🐸</div>
+        <h1 class="prompt-word" id="prompt-word">Frog</h1>
+        <p class="hint">Act silently. Tap Correct when your team guesses it!</p>
+      </article>
+      <div class="game-controls">
+        <button class="action skip" id="skip-button" type="button"><span aria-hidden="true">↻</span> Skip</button>
+        <button class="action correct" id="correct-button" type="button"><span aria-hidden="true">✓</span> Correct!</button>
+      </div>
+      <div class="game-bottom">
+        <button class="icon-button" id="speak-button" type="button" aria-label="Hear the word spoken aloud"><span aria-hidden="true">🔊</span> Hear the word</button>
+      </div>
+      <p class="sr-only" id="game-announcement" aria-live="assertive"></p>
+    </section>
+
+    <section class="screen results" id="results-screen" aria-labelledby="results-title">
+      <div class="results-card">
+        <div class="results-art" aria-hidden="true">🎉</div>
+        <h2 id="results-title">Time’s up!</h2>
+        <p class="score-label">Correct answers</p>
+        <div class="score-big" id="final-score">0</div>
+        <p id="results-detail">Amazing acting, team!</p>
+        <div class="round-stats" aria-label="Round statistics">
+          <div class="round-stat"><strong id="final-skipped">0</strong>Skipped cards</div>
+          <div class="round-stat"><strong id="final-attempted">0</strong>Total cards attempted</div>
+        </div>
+        <div class="results-actions">
+          <button class="again" id="again-button" type="button">Play again!</button>
+          <button class="again secondary" id="menu-button" type="button">Main menu</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+    const words = [
+      { category: "animals", difficulty: "easy", word: "Elephant", image: "🐘" },
+      { category: "animals", difficulty: "easy", word: "Penguin", image: "🐧" },
+      { category: "animals", difficulty: "easy", word: "Monkey", image: "🐒" },
+      { category: "animals", difficulty: "medium", word: "Kangaroo", image: "🦘" },
+      { category: "animals", difficulty: "easy", word: "Frog", image: "🐸" },
+      { category: "animals", difficulty: "medium", word: "Giraffe", image: "🦒" },
+      { category: "animals", difficulty: "medium", word: "Turtle", image: "🐢" },
+      { category: "animals", difficulty: "easy", word: "Lion", image: "🦁" },
+      { category: "animals", difficulty: "medium", word: "Octopus", image: "🐙" },
+      { category: "animals", difficulty: "easy", word: "Bunny", image: "🐰" },
+      { category: "animals", difficulty: "medium", word: "Flamingo", image: "🦩" },
+      { category: "animals", difficulty: "medium", word: "Dinosaur", image: "🦖" },
+      { category: "animals", difficulty: "hard", word: "Dancing elephant", image: "🐘" },
+      { category: "animals", difficulty: "hard", word: "Sleeping penguin", image: "🐧" },
+      { category: "animals", difficulty: "hard", word: "Monkey riding a bicycle", image: "🐒" },
+      { category: "actions", difficulty: "easy", word: "Sneezing", image: "🤧" },
+      { category: "actions", difficulty: "easy", word: "Swimming", image: "🏊" },
+      { category: "actions", difficulty: "easy", word: "Dancing", image: "💃" },
+      { category: "actions", difficulty: "medium", word: "Brushing teeth", image: "🪥" },
+      { category: "actions", difficulty: "medium", word: "Hiccuping", image: "😮" },
+      { category: "actions", difficulty: "hard", word: "Riding a bike", image: "🚴" },
+      { category: "actions", difficulty: "hard", word: "Juggling", image: "🤹" },
+      { category: "actions", difficulty: "easy", word: "Sleeping", image: "😴" },
+      { category: "actions", difficulty: "easy", word: "Hopping", image: "🐇" },
+      { category: "actions", difficulty: "easy", word: "Jumping", image: "🤸" },
+      { category: "actions", difficulty: "medium", word: "Painting", image: "🎨" },
+      { category: "actions", difficulty: "medium", word: "Flying", image: "🪽" },
+      { category: "actions", difficulty: "hard", word: "Climbing", image: "🧗" },
+      { category: "actions", difficulty: "hard", word: "Walking like a crab", image: "🦀" },
+      { category: "actions", difficulty: "hard", word: "Riding a roller coaster", image: "🎢" },
+      { category: "actions", difficulty: "hard", word: "Walking on the moon", image: "🌙" },
+      { category: "objects", difficulty: "easy", word: "Toothbrush", image: "🪥" },
+      { category: "objects", difficulty: "easy", word: "Umbrella", image: "☂️" },
+      { category: "objects", difficulty: "easy", word: "Backpack", image: "🎒" },
+      { category: "objects", difficulty: "medium", word: "Bicycle", image: "🚲" },
+      { category: "objects", difficulty: "easy", word: "Airplane", image: "✈️" },
+      { category: "objects", difficulty: "medium", word: "Telephone", image: "☎️" },
+      { category: "objects", difficulty: "medium", word: "Guitar", image: "🎸" },
+      { category: "objects", difficulty: "easy", word: "Rocket", image: "🚀" },
+      { category: "objects", difficulty: "medium", word: "Kite", image: "🪁" },
+      { category: "objects", difficulty: "medium", word: "Clock", image: "⏰" },
+      { category: "objects", difficulty: "hard", word: "Bouncy ball", image: "🔴" },
+      { category: "objects", difficulty: "hard", word: "Washing machine", image: "🧺" },
+      { category: "objects", difficulty: "hard", word: "Pair of roller skates", image: "🛼" },
+      { category: "food", difficulty: "easy", word: "Ice cream", image: "🍦" },
+      { category: "food", difficulty: "easy", word: "Banana", image: "🍌" },
+      { category: "food", difficulty: "easy", word: "Pizza", image: "🍕" },
+      { category: "food", difficulty: "medium", word: "Popcorn", image: "🍿" },
+      { category: "food", difficulty: "medium", word: "Watermelon", image: "🍉" },
+      { category: "food", difficulty: "medium", word: "Spaghetti", image: "🍝" },
+      { category: "food", difficulty: "medium", word: "Taco", image: "🌮" },
+      { category: "food", difficulty: "medium", word: "Pancakes", image: "🥞" },
+      { category: "food", difficulty: "hard", word: "Melting ice cream", image: "🍦" },
+      { category: "food", difficulty: "hard", word: "Flipping pancakes", image: "🥞" },
+      { category: "food", difficulty: "hard", word: "Eating a giant pizza", image: "🍕" }
+    ];
+
+    const categoryNames = {
+      animals: "Animals",
+      actions: "Actions",
+      objects: "Objects",
+      food: "Food"
+    };
+    const screens = {
+      welcome: document.getElementById("welcome-screen"),
+      setup: document.getElementById("setup-screen"),
+      game: document.getElementById("game-screen"),
+      results: document.getElementById("results-screen")
+    };
+    const elements = {
+      category: document.getElementById("category-select"),
+      difficulty: document.getElementById("difficulty-select"),
+      duration: document.getElementById("duration-select"),
+      soundEnabled: document.getElementById("sound-enabled"),
+      timer: document.getElementById("timer"),
+      score: document.getElementById("score"),
+      cardsLeft: document.getElementById("cards-left"),
+      resultsTitle: document.getElementById("results-title"),
+      wordCategory: document.getElementById("word-category"),
+      wordArt: document.getElementById("word-art"),
+      promptWord: document.getElementById("prompt-word"),
+      announcement: document.getElementById("game-announcement"),
+      finalScore: document.getElementById("final-score"),
+      finalSkipped: document.getElementById("final-skipped"),
+      finalAttempted: document.getElementById("final-attempted"),
+      resultsDetail: document.getElementById("results-detail")
+    };
+    const settingsStorageKey = "little-charades-settings";
+
+    let deck = [];
+    let score = 0;
+    let skipped = 0;
+    let attempted = 0;
+    let secondsLeft = 60;
+    let timerId = null;
+    let roundEndsAt = 0;
+    let soundContext = null;
+
+    function updateSettingsStatus(message) {
+      document.getElementById("settings-status").textContent = message;
+    }
+
+    function loadSettings() {
+      try {
+        const storedSettings = window.localStorage.getItem(settingsStorageKey);
+        if (storedSettings === null) return;
+
+        const settings = JSON.parse(storedSettings);
+        if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+          updateSettingsStatus("Saved settings are invalid. Using the default settings.");
+          return;
+        }
+
+        if ([...elements.category.options].some((option) => option.value === settings.category)) {
+          elements.category.value = settings.category;
+        }
+        if ([...elements.difficulty.options].some((option) => option.value === settings.difficulty)) {
+          elements.difficulty.value = settings.difficulty;
+        }
+        if ([...elements.duration.options].some((option) => option.value === settings.duration)) {
+          elements.duration.value = settings.duration;
+        }
+        if (typeof settings.soundEnabled === "boolean") {
+          elements.soundEnabled.checked = settings.soundEnabled;
+        }
+      } catch (error) {
+        updateSettingsStatus("Saved settings could not be read. Using the default settings.");
+      }
+    }
+
+    function saveSettings() {
+      const settings = {
+        category: elements.category.value,
+        difficulty: elements.difficulty.value,
+        duration: elements.duration.value,
+        soundEnabled: elements.soundEnabled.checked
+      };
+
+      try {
+        window.localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+        updateSettingsStatus("");
+      } catch (error) {
+        updateSettingsStatus("Settings could not be saved in this browser.");
+      }
+    }
+
+    loadSettings();
+
+    function showScreen(name) {
+      Object.entries(screens).forEach(([screenName, screen]) => {
+        screen.classList.toggle("active", screenName === name);
+      });
+    }
+
+    function shuffle(items) {
+      const shuffled = [...items];
+      for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+      }
+      return shuffled;
+    }
+
+    function updateTimer() {
+      const minutes = Math.floor(secondsLeft / 60);
+      const seconds = String(secondsLeft % 60).padStart(2, "0");
+      elements.timer.textContent = `${minutes}:${seconds}`;
+      elements.timer.classList.toggle("urgent", secondsLeft <= 10);
+    }
+
+    function checkRoundExpired() {
+      if (timerId === null) return true;
+
+      const remainingMilliseconds = roundEndsAt - performance.now();
+      secondsLeft = Math.max(0, Math.ceil(remainingMilliseconds / 1000));
+      updateTimer();
+      if (remainingMilliseconds <= 0) {
+        finishGame();
+        return true;
+      }
+      return false;
+    }
+
+    function showNextWord() {
+      const next = deck.pop();
+      elements.wordCategory.textContent = categoryNames[next.category];
+      elements.wordArt.textContent = next.image;
+      elements.promptWord.textContent = next.word;
+      elements.cardsLeft.textContent = String(deck.length);
+      elements.announcement.textContent = `${next.word}. Act it out, no talking!`;
+      elements.wordArt.style.animation = "none";
+      elements.promptWord.style.animation = "none";
+      requestAnimationFrame(() => {
+        elements.wordArt.style.animation = "";
+        elements.promptWord.style.animation = "";
+      });
+    }
+
+    function playEndSound() {
+      if (!elements.soundEnabled.checked || !soundContext) return;
+
+      const startTime = soundContext.currentTime;
+      [523.25, 659.25, 783.99].forEach((frequency, index) => {
+        const toneStart = startTime + index * 0.16;
+        const oscillator = soundContext.createOscillator();
+        const volume = soundContext.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, toneStart);
+        volume.gain.setValueAtTime(0.0001, toneStart);
+        volume.gain.exponentialRampToValueAtTime(0.14, toneStart + 0.025);
+        volume.gain.exponentialRampToValueAtTime(0.0001, toneStart + 0.14);
+        oscillator.connect(volume);
+        volume.connect(soundContext.destination);
+        oscillator.start(toneStart);
+        oscillator.stop(toneStart + 0.15);
+      });
+    }
+
+    function getBestAvailableVoice() {
+      const voices = window.speechSynthesis.getVoices();
+      const preferredLanguage = navigator.language.toLowerCase();
+      const preferredBaseLanguage = preferredLanguage.split("-")[0];
+      return voices.find((voice) => voice.lang.toLowerCase() === preferredLanguage)
+        || voices.find((voice) => voice.lang.toLowerCase().startsWith(`${preferredBaseLanguage}-`))
+        || voices.find((voice) => voice.lang.toLowerCase() === "en-us")
+        || voices.find((voice) => voice.lang.toLowerCase().startsWith("en-"))
+        || voices.find((voice) => voice.default)
+        || voices[0]
+        || null;
+    }
+
+    function finishGame(reason = "time") {
+      window.clearInterval(timerId);
+      timerId = null;
+      roundEndsAt = 0;
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      if (reason === "time") playEndSound();
+      elements.resultsTitle.textContent = reason === "cards" ? "All cards played!" : "Time’s up!";
+      elements.finalScore.textContent = String(score);
+      elements.finalSkipped.textContent = String(skipped);
+      elements.finalAttempted.textContent = String(attempted);
+      elements.resultsDetail.textContent = score === 0
+        ? "Great effort, team! Every silly guess makes the next round more fun."
+        : score < 5
+          ? "Nice guessing, team! You’re getting the hang of it."
+          : score < 10
+            ? "Fantastic teamwork! You guessed lots of cards."
+            : "Incredible acting and guessing! You’re charades superstars!";
+      showScreen("results");
+      document.getElementById("again-button").focus();
+    }
+
+    function startGame() {
+      window.clearInterval(timerId);
+      timerId = null;
+      roundEndsAt = 0;
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      if (elements.soundEnabled.checked && "AudioContext" in window) {
+        if (!soundContext) soundContext = new AudioContext();
+        if (soundContext.state === "suspended") {
+          soundContext.resume().catch(() => {
+            elements.announcement.textContent = "Sound could not be started. Check your browser's sound settings.";
+          });
+        }
+      }
+      score = 0;
+      skipped = 0;
+      attempted = 0;
+      secondsLeft = Number(elements.duration.value);
+      roundEndsAt = performance.now() + secondsLeft * 1000;
+      const selected = elements.category.value;
+      const difficulty = elements.difficulty.value;
+      deck = shuffle(words.filter((item) =>
+        (selected === "mixed" || item.category === selected) && item.difficulty === difficulty
+      ));
+      elements.score.textContent = "0";
+      updateTimer();
+      showNextWord();
+      showScreen("game");
+      document.getElementById("correct-button").focus();
+      timerId = window.setInterval(() => {
+        checkRoundExpired();
+      }, 100);
+      checkRoundExpired();
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) checkRoundExpired();
+    });
+
+    document.getElementById("setup-button").addEventListener("click", () => {
+      showScreen("setup");
+      document.getElementById("start-button").focus();
+    });
+    document.getElementById("setup-back-button").addEventListener("click", () => {
+      showScreen("welcome");
+      document.getElementById("setup-button").focus();
+    });
+    [elements.category, elements.difficulty, elements.duration, elements.soundEnabled]
+      .forEach((control) => control.addEventListener("change", saveSettings));
+    document.getElementById("start-button").addEventListener("click", startGame);
+    document.getElementById("correct-button").addEventListener("click", () => {
+      if (checkRoundExpired()) return;
+      score += 1;
+      attempted += 1;
+      elements.score.textContent = String(score);
+      if (deck.length === 0) finishGame("cards");
+      else showNextWord();
+    });
+    document.getElementById("skip-button").addEventListener("click", () => {
+      if (checkRoundExpired()) return;
+      skipped += 1;
+      attempted += 1;
+      if (deck.length === 0) finishGame("cards");
+      else showNextWord();
+    });
+    document.getElementById("again-button").addEventListener("click", () => {
+      startGame();
+    });
+    document.getElementById("menu-button").addEventListener("click", () => {
+      showScreen("welcome");
+      document.getElementById("setup-button").focus();
+    });
+    document.getElementById("speak-button").addEventListener("click", () => {
+      if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+        elements.announcement.textContent = "Text to speech is not available in this browser.";
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const spokenWord = new SpeechSynthesisUtterance(elements.promptWord.textContent);
+      spokenWord.rate = 0.85;
+      const voice = getBestAvailableVoice();
+      if (voice) spokenWord.voice = voice;
+      window.speechSynthesis.speak(spokenWord);
+    });
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js")
+          .catch((error) => console.error("Service worker registration failed:", error));
+      });
+    }
+  </script>
+</body>
+</html>
